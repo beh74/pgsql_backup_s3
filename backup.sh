@@ -64,10 +64,10 @@ else
 fi
 
 echo "Creating dump of all databases from ${POSTGRES_HOST}..."
-pg_dumpall -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER | gzip > dump.sql.gz
+pg_dumpall -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER | gzip > /home/bckuser/dump.sql.gz
 
 echo "Uploading dump to $S3_BUCKET"
-cat dump.sql.gz | aws $AWS_ARGS s3 cp - "s3://${S3_BUCKET}${S3_PREFIX}${POSTGRES_DATABASE}.sql.gz" || exit 2
+cat /home/bckuser/dump.sql.gz | aws $AWS_ARGS s3 cp - "s3://${S3_BUCKET}${S3_PREFIX}${POSTGRES_DATABASE}.sql.gz" || exit 2
 
 echo "SQL backup uploaded successfully"
-rm -rf dump.sql.gz
+rm -rf /home/bckuser/dump.sql.gz

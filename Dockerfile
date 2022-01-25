@@ -2,8 +2,12 @@ FROM alpine:3.15.0
 LABEL maintainer="hartwig.bertrand@gmail.com"
 LABEL description="Backup PostgresSQL database using pg_dumpall to S3 "
 
-ADD install.sh install.sh
+COPY install.sh install.sh
 RUN sh install.sh && rm install.sh
+
+# Create a group and user to perform backup
+RUN addgroup -S bckgrp && adduser -S bckuser -G bckgrp -h /home/bckuser
+USER bckuser
 
 ENV POSTGRES_DATABASE **None**
 ENV POSTGRES_HOST **None**
@@ -19,7 +23,7 @@ ENV S3_PATH 'backup'
 ENV S3_ENDPOINT **None**
 ENV S3_S3V4 no
 
-ADD run.sh run.sh
-ADD backup.sh backup.sh
+COPY run.sh run.sh
+COPY backup.sh backup.sh
 
 CMD ["sh", "run.sh"]
