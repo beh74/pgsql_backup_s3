@@ -5,6 +5,11 @@ S3 bucket destinations must be versionned : we will use S3 versioning to restore
 
 By convention, the postgresql dbname will be the UNIQUE ID of the file uploaded to S3.
 
+We will tag the S3 object with :
+- dump-type : postgresql  (because i need to know the backup kind)
+- dump-time : database pg_dumpall time in seconds (because i need to estimate the db restauration time)
+- database-version : the postgresql server version discovered during backup
+
 ## Usage
 
 Docker Compose:
