@@ -108,12 +108,5 @@ else
 fi
 return 0
 
-
-
-
-echo "Restoring ${LATEST_BACKUP}"
-
-
-
 echo "Restore complete"
 
