@@ -1,6 +1,6 @@
 # pgsql_backup_s3
 
-Backup PostgresSQL database using pg_dumpall to S3 (with periodic backups by using restart_policy) in a **docker swarm environment** with a tiny alpine image (150 MB).
+Backup PostgresSQL database using pg_dumpall and upload sql backup file to S3 (with periodic backups by using restart_policy) in a **docker swarm environment** with a tiny alpine image (150 MB).
 S3 bucket destinations must be versionned : we will use S3 versioning to restore a specific version
 
 By convention, the postgresql dbname will be the UNIQUE ID of the file uploaded to S3.
