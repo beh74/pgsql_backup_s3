@@ -41,6 +41,7 @@ services:
       POSTGRES_USER: myuser
       POSTGRES_PASSWORD: mypassword
       POSTGRES_EXTRA_OPTS: '--schema=public --blobs'
+      SLACK_URL: https://hooks.slack.com/services/xxxx
     deploy:
       restart_policy:
         condition: any
@@ -51,6 +52,10 @@ services:
 ### Automatic Periodic Backups
 
 The container will stop after each backup. To schedule backup, use restart_policy to define periodicity of backups 
+
+### Slack notification when backup fails
+
+If the SLACK_URL environment variable is set, a notification will be sent to Slack on any backup error
 
 ### Endpoints for S3
 
