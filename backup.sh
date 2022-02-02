@@ -1,7 +1,44 @@
 #! /bin/sh
 
-set -eo pipefail
-set -o pipefail
+set -e
+#trap 'catch $? $LINENO' EXIT
+
+function notify {
+  echo "Backup failed for :"
+  echo "db host : ${POSTGRES_HOST}"
+  echo "db name : ${POSTGRES_DATABASE}"
+  echo "db port : ${POSTGRES_PORT}"
+  echo "db user : ${POSTGRES_USER}"
+  echo "s3 bucket : ${S3_BUCKET}"
+  echo "s3 prefix : ${S3_PREFIX}"
+  echo "backup container hostname : $HOSTNAME"
+
+  if [ "${SLACK_URL}" = "**None**" ]; then
+    echo "SLACK_URL is undefined. Skipping Slack notification"
+  else
+    echo "Sending a notification to Slack"
+    payload='
+    {
+    "title": "Backup failed !",
+    "attachments": [
+    {
+    "author_name": "From container '"$HOSTNAME"'",
+    "text": "PostgreSql backup failed",
+    "color": "#00a3e0"
+    },
+    {
+     "text": "Database : '"${POSTGRES_USER}"'@'"${POSTGRES_HOST}"':'"${POSTGRES_PORT}"'/'"${POSTGRES_DATABASE}"'"
+    },
+    {
+     "text": "S3 : '"${S3_BUCKET}"'/'"${S3_PREFIX}"'"
+    }
+    ]
+    }'
+    curl -s -X POST -H "Content-type: application/json" -d "$payload" $SLACK_URL
+
+  fi
+}
+trap notify EXIT
 
 if [ "${S3_ACCESS_KEY_ID}" = "**None**" ]; then
   echo "You need to set the S3_ACCESS_KEY_ID environment variable."
