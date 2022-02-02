@@ -27,9 +27,9 @@ services:
   pgbackups3:
     image: pqsql-backup-s3:1.0
     depends_on:
-      - postgres
+      - mypostgres
     links:
-      - postgres
+      - mypostgres
     environment:
       S3_REGION: region
       S3_ACCESS_KEY_ID: key
@@ -64,3 +64,7 @@ An Endpoint is the URL of the entry point for an AWS web service or S3 Compatibl
 You can specify an alternate endpoint by setting `S3_ENDPOINT` environment variable like `protocol://endpoint`
 
 **Note:** S3 Compatible Storage Provider like minio or scality requires `S3_ENDPOINT` environment variable
+
+### Database restore
+
+Check the restore folder in this repository that contains all the code needed to restore a database from a s3 object
