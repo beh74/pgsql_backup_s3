@@ -10,6 +10,10 @@ We will tag the S3 object with :
 - dump-time : database pg_dumpall time in seconds (because i need to estimate the db restauration time)
 - database-version : the postgresql server version discovered during backup
 
+You may have to choose a S3 life cycle managment rule to delete old backups in the destination bucket.
+
+![Alt text](images/design.jpg?raw=true "Big picture")
+
 ## Usage
 
 Docker Compose:
@@ -42,6 +46,7 @@ services:
       POSTGRES_PASSWORD: mypassword
       POSTGRES_EXTRA_OPTS: '--schema=public --blobs'
       SLACK_URL: https://hooks.slack.com/services/xxxx
+      ELASTIC_URL: https://user:password@myelastic.local/indexname/_doc
     deploy:
       restart_policy:
         condition: any
@@ -56,6 +61,11 @@ The container will stop after each backup. To schedule backup, use restart_polic
 ### Slack notification when backup fails
 
 If the SLACK_URL environment variable is set, a notification will be sent to Slack on any backup error
+
+### Elasticsearch
+
+If the ELASTIC_URL environment variable is set, all informations relative to backup will be stored in an index even in case of a backup failure.
+The ELASTIC_URL should be : https://user:password@myelastic.local/indexname/_doc
 
 ### Endpoints for S3
 

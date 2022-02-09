@@ -1,7 +1,6 @@
 #! /bin/sh
 
 set -e
-#trap 'catch $? $LINENO' EXIT
 
 function notify {
   echo "Backup failed for :"
@@ -35,8 +34,29 @@ function notify {
     ]
     }'
     curl -s -X POST -H "Content-type: application/json" -d "$payload" $SLACK_URL
-
   fi
+
+  if [ "${ELASTIC_URL}" = "**None**" ]; then
+    echo "Elasticsearch URL not provided"
+  else
+    echo "Sending data to elasticsearch"
+
+    payload='
+    {
+    "database.type": "postgresql",
+    "database.name": "'"${POSTGRES_DATABASE}"'",,
+    "database.host": "'"${POSTGRES_HOST}"'",,
+    "database.port": "'"${POSTGRES_PORT}"'",
+    "database.user": "'"${POSTGRES_USER}"'",
+    "dump.status": "failed",
+    "s3.bucket": "'"${S3_BUCKET}"'",
+    "s3.prefix": "'"${S3_PREFIX}"'",
+    "s3.endpoint": "'"${S3_ENDPOINT}"'",
+    "agent.hostname: "'"$HOSTNAME"'",
+    "@timestamp": ""
+    }'
+    curl -s -X POST -H "Content-type: application/json" -d "$payload" $ELASTIC_URL
+fi
 }
 trap notify EXIT
 
@@ -80,7 +100,7 @@ if [ "${POSTGRES_PASSWORD}" = "**None**" ]; then
   exit 1
 fi
 
-if [ "${S3_ENDPOINT}" == "**None**" ]; then
+if [ "${S3_ENDPOINT}" = "**None**" ]; then
   AWS_ARGS=""
 else
   AWS_ARGS="--endpoint-url ${S3_ENDPOINT}"
@@ -125,3 +145,29 @@ aws $AWS_ARGS s3api put-object-tagging \
 
 echo "SQL backup uploaded successfully"
 rm -rf /home/bckuser/dump.sql.gz
+
+if [ "${ELASTIC_URL}" = "**None**" ]; then
+    echo "Elasticsearch URL not provided"
+else
+    echo "Sending data to elasticsearch"
+
+    payload='
+    {
+    "database.type": "postgresql",
+    "database.version": "'"$sqlver"'",
+    "database.name": "'"${POSTGRES_DATABASE}"'",,
+    "database.host": "'"${POSTGRES_HOST}"'",,
+    "database.port": "'"${POSTGRES_PORT}"'",
+    "database.user": "'"${POSTGRES_USER}"'",
+    "dump.duration": '"$dump_runtime"',
+    "dump.filesize": '"$filesize"',
+    "dump.status": "successfull",
+    "s3.bucket": "'"${S3_BUCKET}"'",
+    "s3.prefix": "'"${S3_PREFIX}"'",
+    "s3.endpoint": "'"${S3_ENDPOINT}"'",
+    "s3.duration": '"$s3_runtime"',
+    "agent.hostname: "'"$HOSTNAME"'",
+    "@timestamp": ""
+    }'
+    curl -s -X POST -H "Content-type: application/json" -d "$payload" $ELASTIC_URL
+fi

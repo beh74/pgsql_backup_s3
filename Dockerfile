@@ -27,6 +27,7 @@ ENV S3_ENDPOINT **None**
 ENV S3_S3V4 no
 
 ENV SLACK_URL **None**
+ENV ELASTIC_URL **None**
 
 COPY run.sh run.sh
 COPY backup.sh backup.sh
