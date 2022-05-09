@@ -2,8 +2,14 @@
 
 set -e
 
+export STATUS="KO"
+
 function notify {
-  echo "Backup failed for :"
+  if [ "${STATUS}" = "KO" ]; then
+     echo "Backup failed for :"
+  else
+     echo "Backup is successfull for :"
+  fi
   echo "db host : ${POSTGRES_HOST}"
   echo "db name : ${POSTGRES_DATABASE}"
   echo "db port : ${POSTGRES_PORT}"
@@ -15,47 +21,51 @@ function notify {
   if [ "${SLACK_URL}" = "**None**" ]; then
     echo "SLACK_URL is undefined. Skipping Slack notification"
   else
-    echo "Sending a notification to Slack"
-    payload='
-    {
-    "title": "Backup failed !",
-    "attachments": [
-    {
-    "author_name": "From container '"$HOSTNAME"'",
-    "text": "PostgreSql backup failed",
-    "color": "#00a3e0"
-    },
-    {
-     "text": "Database : '"${POSTGRES_USER}"'@'"${POSTGRES_HOST}"':'"${POSTGRES_PORT}"'/'"${POSTGRES_DATABASE}"'"
-    },
-    {
-     "text": "S3 : '"${S3_BUCKET}"'/'"${S3_PREFIX}"'"
-    }
-    ]
-    }'
-    curl -s -X POST -H "Content-type: application/json" -d "$payload" $SLACK_URL
+    if [ "${STATUS}" = "KO" ]; then
+	    echo "Sending a notification to Slack"
+	    payload='
+    	{
+    	"title": "Backup failed !",
+    	"attachments": [
+    	{
+    	"author_name": "From container '"$HOSTNAME"'",
+    	"text": "PostgreSql backup failed",
+    	"color": "#00a3e0"
+    	},
+    	{
+    	 "text": "Database : '"${POSTGRES_USER}"'@'"${POSTGRES_HOST}"':'"${POSTGRES_PORT}"'/'"${POSTGRES_DATABASE}"'"
+    	},
+    	{
+     	"text": "S3 : '"${S3_BUCKET}"'/'"${S3_PREFIX}"'"
+    	}
+    	]
+    	}'
+    	curl -s -X POST -H "Content-type: application/json" -d "$payload" $SLACK_URL
+    fi
   fi
 
   if [ "${ELASTIC_URL}" = "**None**" ]; then
     echo "Elasticsearch URL not provided"
   else
-    echo "Sending data to elasticsearch"
-
-    payload='
-    {
-    "database.type": "postgresql",
-    "database.name": "'"${POSTGRES_DATABASE}"'",,
-    "database.host": "'"${POSTGRES_HOST}"'",,
-    "database.port": "'"${POSTGRES_PORT}"'",
-    "database.user": "'"${POSTGRES_USER}"'",
-    "dump.status": "failed",
-    "s3.bucket": "'"${S3_BUCKET}"'",
-    "s3.prefix": "'"${S3_PREFIX}"'",
-    "s3.endpoint": "'"${S3_ENDPOINT}"'",
-    "agent.hostname: "'"$HOSTNAME"'",
-    "@timestamp": ""
-    }'
-    curl -s -X POST -H "Content-type: application/json" -d "$payload" $ELASTIC_URL
+    if [ "${STATUS}" = "KO" ]; then
+      echo "Sending data to elasticsearch"
+      ts=$(date -u +"%Y-%m-%dT%T")
+      payload='
+      {
+      "database.type": "postgresql",
+      "database.name": "'"${POSTGRES_DATABASE}"'",
+      "database.host": "'"${POSTGRES_HOST}"'",
+      "database.port": "'"${POSTGRES_PORT}"'",
+      "database.user": "'"${POSTGRES_USER}"'",
+      "dump.status": "failed",
+      "s3.bucket": "'"${S3_BUCKET}"'",
+      "s3.prefix": "'"${S3_PREFIX}"'",
+      "s3.endpoint": "'"${S3_ENDPOINT}"'",
+      "agent.hostname": "'"{$HOSTNAME}"'",
+      "@timestamp": "'"${ts}"'"
+      }'
+      curl -s -X POST -H "Content-type: application/json" -d "$payload" $ELASTIC_URL
+   fi
 fi
 }
 trap notify EXIT
@@ -90,6 +100,10 @@ if [ "${POSTGRES_HOST}" = "**None**" ]; then
   fi
 fi
 
+if [ "${BACKUP_FILENAME}" = "**None**" ]; then
+  BACKUP_FILENAME=$POSTGRES_DATABASE
+fi
+
 if [ "${POSTGRES_USER}" = "**None**" ]; then
   echo "You need to set the POSTGRES_USER environment variable."
   exit 1
@@ -117,7 +131,7 @@ POSTGRES_HOST_OPTS="-h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER $POSTG
 if [ -z ${S3_PREFIX+x} ]; then
   S3_PREFIX="/"
 else
-  S3_PREFIX="/${S3_PREFIX}/"  
+  S3_PREFIX="${S3_PREFIX}/"  
 fi
 
 echo "Connecting PostgreSql server to get the server version"
@@ -131,16 +145,16 @@ dump_runtime=$((end-start))
 filesize=$(stat -c%s "/home/bckuser/dump.sql.gz")
 echo "pg_dumpall took ${dump_runtime} seconds. Filesize is ${filesize} bytes"
 
-echo "Uploading dump to s3://${S3_BUCKET}${S3_PREFIX}${POSTGRES_DATABASE}.sql.gz"
+echo "Uploading dump to s3://${S3_BUCKET}/${S3_PREFIX}${BACKUP_FILENAME}.sql.gz"
 start=`date +%s`
-cat /home/bckuser/dump.sql.gz | aws $AWS_ARGS s3 cp - "s3://${S3_BUCKET}${S3_PREFIX}${POSTGRES_DATABASE}.sql.gz" || exit 2
+cat /home/bckuser/dump.sql.gz | aws $AWS_ARGS s3 cp - "s3://${S3_BUCKET}/${S3_PREFIX}${BACKUP_FILENAME}.sql.gz" || exit 2
 end=`date +%s`
 s3_runtime=$((end-start))
 echo "s3 upload took ${s3_runtime} seconds"
 
 aws $AWS_ARGS s3api put-object-tagging \
     --bucket ${S3_BUCKET} \
-    --key ${S3_PREFIX}${POSTGRES_DATABASE}.sql.gz \
+    --key "${S3_PREFIX}${BACKUP_FILENAME}.sql.gz" \
     --tagging '{"TagSet": [{ "Key": "dump-time", "Value": "'"$dump_runtime"'" }, { "Key": "dump-type", "Value": "postgresql" }, { "Key": "database-version", "Value": "'"$sqlver"'" }]}'
 
 echo "SQL backup uploaded successfully"
@@ -150,24 +164,29 @@ if [ "${ELASTIC_URL}" = "**None**" ]; then
     echo "Elasticsearch URL not provided"
 else
     echo "Sending data to elasticsearch"
+    ts=$(date -u +"%Y-%m-%dT%T")
 
     payload='
     {
     "database.type": "postgresql",
     "database.version": "'"$sqlver"'",
-    "database.name": "'"${POSTGRES_DATABASE}"'",,
-    "database.host": "'"${POSTGRES_HOST}"'",,
+    "database.name": "'"${POSTGRES_DATABASE}"'",
+    "database.host": "'"${POSTGRES_HOST}"'",
     "database.port": "'"${POSTGRES_PORT}"'",
     "database.user": "'"${POSTGRES_USER}"'",
     "dump.duration": '"$dump_runtime"',
     "dump.filesize": '"$filesize"',
     "dump.status": "successfull",
+    "dump.filename": "'"${BACKUP_FILENAME}"'",
     "s3.bucket": "'"${S3_BUCKET}"'",
     "s3.prefix": "'"${S3_PREFIX}"'",
     "s3.endpoint": "'"${S3_ENDPOINT}"'",
     "s3.duration": '"$s3_runtime"',
-    "agent.hostname: "'"$HOSTNAME"'",
-    "@timestamp": ""
+    "agent.hostname": "'"$HOSTNAME"'",
+    "@timestamp": "'"${ts}"'"
     }'
     curl -s -X POST -H "Content-type: application/json" -d "$payload" $ELASTIC_URL
+
+    export STATUS="OK"
+
 fi
