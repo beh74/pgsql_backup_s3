@@ -3,15 +3,6 @@
 Backup PostgresSQL database using pg_dumpall and upload sql backup file to S3 (with periodic backups by using restart_policy) in a **docker swarm environment** with a tiny alpine image (150 MB).
 S3 bucket destinations must be versionned : we will use S3 versioning to restore a specific version
 
-By convention, the postgresql dbname will be the UNIQUE ID of the file uploaded to S3.
-
-We will tag the S3 object with :
-- dump-type : postgresql  (because i need to know the backup kind)
-- dump-time : database pg_dumpall time in seconds (because i need to estimate the db restauration time)
-- database-version : the postgresql server version discovered during backup
-
-You may have to choose a S3 life cycle managment rule to delete old backups in the destination bucket.
-
 ![Alt text](images/design.jpg?raw=true "Big picture")
 
 ## Usage
@@ -53,6 +44,17 @@ services:
         # Backup every hour
         delay: 1h
 ```
+### Backup file
+
+If BACKUP_FILENAME env var is not provided, then the backup file name is set to POSTGRES_DATABASE env var
+
+The filename will be tagged in S3 object :
+- dump-type : postgresql 
+- dump-time : database pg_dumpall time in seconds (to estimate the db restauration time)
+- database-version : the postgresql server version discovered during backup
+
+You may have to define a S3 life cycle managment rule to delete old backups in the destination bucket.
+
 
 ### Automatic Periodic Backups
 
