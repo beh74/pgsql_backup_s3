@@ -1,9 +1,13 @@
-FROM alpine:3.15.0
+FROM alpine:3.18.2
 LABEL maintainer="hartwig.bertrand@gmail.com"
 LABEL description="Backup PostgresSQL database using pg_dumpall to S3 "
 
 # no HEALTHCHECK
 HEALTHCHECK NONE
+
+RUN apk update
+RUN apk upgrade
+RUN apk cache clean
 
 COPY install.sh install.sh
 RUN sh install.sh && rm install.sh
