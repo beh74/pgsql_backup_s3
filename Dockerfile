@@ -1,4 +1,4 @@
-FROM alpine:3.18.2
+FROM alpine:3.18.4
 LABEL maintainer="hartwig.bertrand@gmail.com"
 LABEL description="Backup PostgresSQL database using pg_dumpall to S3 "
 

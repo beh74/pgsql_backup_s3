@@ -134,6 +134,9 @@ else
   S3_PREFIX="${S3_PREFIX}/"  
 fi
 
+rm -rf /home/bckuser/${BACKUP_FILENAME}.tar
+rm -rf /home/bckuser/${BACKUP_FILENAME}
+
 echo "Connecting PostgreSql server to get the server version"
 sqlver=`psql -t -h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER -d $POSTGRES_DATABASE -c "SHOW server_version;"`
 
@@ -169,6 +172,7 @@ rm -rf /home/bckuser/${BACKUP_FILENAME}
 
 if [ "${ELASTIC_URL}" = "**None**" ]; then
     echo "Elasticsearch URL not provided"
+    export STATUS="OK"
 else
     echo "Sending data to elasticsearch"
     ts=$(date -u +"%Y-%m-%dT%T")

@@ -26,6 +26,7 @@ services:
     links:
       - mypostgres
     environment:
+      S3_ENDPOINT: https://mys3.local
       S3_REGION: region
       S3_ACCESS_KEY_ID: key
       S3_SECRET_ACCESS_KEY: secret
