@@ -16,7 +16,7 @@ To perform a database restauration, you must provide the object S3 version (REST
 ### Step 1 : Get the Object version(s)
 
 ```sh
-$ docker run -e S3_ACCESS_KEY_ID=key -e S3_SECRET_ACCESS_KEY=secret -e S3_BUCKET=my-bucket -e S3_PREFIX=backup -e POSTGRES_DATABASE=dbname -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_HOST=localhost RESTORE_OPERATION=list pgsql_restore_s3
+$ docker run -e S3_ACCESS_KEY_ID=key -e S3_SECRET_ACCESS_KEY=secret -e S3_BUCKET=my-bucket -e S3_PREFIX=backup -e POSTGRES_DATABASE=dbname -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_HOST=localhost -e RESTORE_OPERATION=list pgsql_restore_s3
 ```
 
 Sample output :
@@ -29,7 +29,7 @@ c8a00090-769b-4c1a-9b7a-7cf217d95ec4	2022-01-25T04:52:57.034Z	1612	false
 
 ### Step 2 : Get the Object tags
 ```sh
-$ docker run -e S3_ACCESS_KEY_ID=key -e S3_SECRET_ACCESS_KEY=secret -e S3_BUCKET=my-bucket -e S3_PREFIX=backup -e POSTGRES_DATABASE=dbname -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_HOST=localhost RESTORE_OPERATION=info RESTORE_VERSION=5cadc8eb-4dad-4af1-a9b3-44e971a0b52a pgsql_restore_s3
+$ docker run -e S3_ACCESS_KEY_ID=key -e S3_SECRET_ACCESS_KEY=secret -e S3_BUCKET=my-bucket -e S3_PREFIX=backup -e POSTGRES_DATABASE=dbname -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_HOST=localhost -e RESTORE_OPERATION=info -e RESTORE_VERSION=5cadc8eb-4dad-4af1-a9b3-44e971a0b52a pgsql_restore_s3
 ```
 
 Sample output :
@@ -42,7 +42,7 @@ dump-type		    postgresql
 
 ### Step 3 : restore database
 ```sh
-$ docker run -e S3_ACCESS_KEY_ID=key -e S3_SECRET_ACCESS_KEY=secret -e S3_BUCKET=my-bucket -e S3_PREFIX=backup -e POSTGRES_DATABASE=dbname -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_HOST=localhost RESTORE_OPERATION=restore RESTORE_VERSION=5cadc8eb-4dad-4af1-a9b3-44e971a0b52a DROP_PUBLIC=yes pgsql_restore_s3
+$ docker run -e S3_ACCESS_KEY_ID=key -e S3_SECRET_ACCESS_KEY=secret -e S3_BUCKET=my-bucket -e S3_PREFIX=backup -e POSTGRES_DATABASE=dbname -e POSTGRES_USER=user -e POSTGRES_PASSWORD=password -e POSTGRES_HOST=localhost -e RESTORE_OPERATION=restore -e RESTORE_VERSION=5cadc8eb-4dad-4af1-a9b3-44e971a0b52a -e DROP_PUBLIC=yes pgsql_restore_s3
 ```
 
 ## Dropping public
