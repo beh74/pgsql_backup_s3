@@ -5,10 +5,16 @@ LABEL description="Backup PostgresSQL database using pg_dumpall to S3 "
 # no HEALTHCHECK
 HEALTHCHECK NONE
 
-RUN apk update && apk upgrade && apk cache clean
+RUN apk update && apk upgrade 
+RUN apk add postgresql-client && apk add python3 py3-pip py3-six py3-urllib3 py3-colorama curl
 
-COPY install.sh install.sh
-RUN sh install.sh && rm install.sh
+# install s3 tools
+RUN pip install awscli
+RUN apk del py3-pip
+
+# cleanup
+RUN apk cache clean && rm -rf /var/cache/apk/*
+
 
 # Create a group and user to perform backup
 RUN addgroup -S bckgrp && adduser -S bckuser -G bckgrp -h /home/bckuser
