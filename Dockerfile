@@ -9,7 +9,7 @@ RUN apk update && apk upgrade
 RUN apk add postgresql-client && apk add python3 py3-pip py3-six py3-urllib3 py3-colorama curl
 
 # install s3 tools
-RUN pip install awscli
+RUN pip install awscli --break-system-packages
 RUN apk del py3-pip
 
 # cleanup
